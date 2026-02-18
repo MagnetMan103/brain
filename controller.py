@@ -47,14 +47,14 @@ TRIPOD_A = [LEGS[0], LEGS[2], LEGS[4]]  # front-left, mid-left, rear-left
 TRIPOD_B = [LEGS[1], LEGS[3], LEGS[5]]  # front-right, mid-right, rear-right
 
 # For turning, we need to know which side each leg is on
-LEFT_LEGS  = [LEGS[0], LEGS[2], LEGS[4]]
-RIGHT_LEGS = [LEGS[1], LEGS[3], LEGS[5]]
+LEFT_LEGS  = [LEGS[0], LEGS[1], LEGS[2]]
+RIGHT_LEGS = [LEGS[3], LEGS[4], LEGS[5]]
 
 # ============================================================================
 # Default Angles
 # ============================================================================
 KNEE_NEUTRAL = 110
-KNEE_LIFTED  = 140
+KNEE_LIFTED  = 130
 HIP_NEUTRAL  = 90
 
 NUM_SERVOS = 12
@@ -126,7 +126,6 @@ class Hexapod:
         self._set_neutral()
         self.commit()
 
-    # ── Angle Bookkeeping ────────────────────────────────────────────
     def _set_neutral(self):
         for leg in LEGS:
             self.angles[leg.knee] = KNEE_NEUTRAL
@@ -149,13 +148,11 @@ class Hexapod:
         self.commit()
         time.sleep(duration if duration is not None else self.step_time)
 
-    # ── Amplitude Helper ─────────────────────────────────────────────
     @staticmethod
     def _swing(amplitude):
         """Convert amplitude (10-100) to hip swing offset in degrees."""
         return int(10 + (amplitude - 10) * (50 - 10) / (100 - 10))
 
-    # ── Basic Gaits ──────────────────────────────────────────────────
     def forward(self, amplitude=50, steps=1):
         swing = self._swing(amplitude)
         hip_forward = HIP_NEUTRAL - swing
@@ -183,27 +180,27 @@ class Hexapod:
         self.commit_and_wait()
 
         # Lower
-        self._set_knees(swing_group, KNEE_NEUTRAL - 20)
+        self._set_knees(swing_group, KNEE_NEUTRAL - 10)
         self.commit_and_wait()
 
         # Return hips to neutral (power stroke)
         self._set_hips(swing_group, HIP_NEUTRAL)
         # put knees above
-        self._set_knees(swing_group, KNEE_NEUTRAL)
+        self._set_knees(swing_group, KNEE_NEUTRAL + 10)
         self.commit_and_wait()
 
     def turn_left(self, amplitude=50, steps=1):
         """Rotate counter-clockwise: left legs back, right legs forward."""
-        self._turn(amplitude, steps, left_target="backward", right_target="forward")
+        self._turn(amplitude, steps, left_target="forward", right_target="backward")
 
     def turn_right(self, amplitude=50, steps=1):
         """Rotate clockwise: left legs forward, right legs back."""
-        self._turn(amplitude, steps, left_target="forward", right_target="backward")
-
+        self._turn(amplitude, steps, left_target="backward", right_target="forward")
+    
     def _turn(self, amplitude, steps, left_target, right_target):
         swing = self._swing(amplitude)
-        targets = {
-            "forward":  HIP_NEUTRAL - swing,
+        hip_angle = {
+            "forward":  HIP_NEUTRAL + swing,
             "backward": HIP_NEUTRAL - swing,
         }
 
@@ -217,13 +214,11 @@ class Hexapod:
                 # Differential swing
                 for leg in swing_group:
                     if leg in LEFT_LEGS:
-                        self.angles[leg.hip] = targets[left_target]
+                        self.angles[leg.hip] = hip_angle[left_target]
                     else:
-                        self.angles[leg.hip] = HIP_NEUTRAL + swing
-                self.commit_and_wait()
-
-                # Lower
-                self._set_knees(swing_group, KNEE_NEUTRAL)
+                        self.angles[leg.hip] = hip_angle[right_target]
+                self.commit_and_wait()                # Lower
+                self._set_knees(swing_group, KNEE_NEUTRAL - 10)
                 self.commit_and_wait()
 
                 # Power stroke back to neutral
@@ -241,7 +236,6 @@ class Hexapod:
             self.angles[leg.hip]  = HIP_NEUTRAL
         self.commit_and_wait(0.5)
 
-    # ── Smooth Motion ────────────────────────────────────────────────
     def interpolate_to(self, target_angles, duration=0.5, fps=50):
         """
         Smoothly move from current angles to target_angles over `duration`
@@ -260,11 +254,9 @@ class Hexapod:
             self.commit()
             time.sleep(frame_delay)
 
-    # ── IMU ──────────────────────────────────────────────────────────
     def read_imu(self):
         return self.driver.read_imu()
 
-    # ── Cleanup ──────────────────────────────────────────────────────
     def close(self):
         self.driver.close()
 
@@ -276,7 +268,7 @@ if __name__ == "__main__":
     port = sys.argv[1] if len(sys.argv) > 1 else "/dev/ttyACM0"
     print(f"Connecting to Arduino on {port}...")
 
-    bot = Hexapod(port, step_time=0.25)
+    bot = Hexapod(port, step_time=1)
     print("Standing up...")
     bot.stand()
     time.sleep(1)

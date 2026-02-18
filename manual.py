@@ -30,5 +30,5 @@ while True:
             bot.turn_left(amplitude=amplitude, steps=steps)
         if (direction == "right"):
             bot.turn_right(amplitude=amplitude, steps=steps)
-    except:
-        print(f"Error with command {command}")
+    except Exception as error:
+        print(f"Error with command {command} has error {error}")
