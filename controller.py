@@ -53,8 +53,8 @@ RIGHT_LEGS = [LEGS[1], LEGS[3], LEGS[5]]
 # ============================================================================
 # Default Angles
 # ============================================================================
-KNEE_NEUTRAL = 120
-KNEE_LIFTED  = 150
+KNEE_NEUTRAL = 110
+KNEE_LIFTED  = 140
 HIP_NEUTRAL  = 90
 
 NUM_SERVOS = 12
@@ -183,13 +183,13 @@ class Hexapod:
         self.commit_and_wait()
 
         # Lower
-        self._set_knees(swing_group, KNEE_NEUTRAL)
+        self._set_knees(swing_group, KNEE_NEUTRAL - 20)
         self.commit_and_wait()
 
         # Return hips to neutral (power stroke)
         self._set_hips(swing_group, HIP_NEUTRAL)
         # put knees above
-        self._set_knees(swing_group, KNEE_NEUTRAL + 10)
+        self._set_knees(swing_group, KNEE_NEUTRAL)
         self.commit_and_wait()
 
     def turn_left(self, amplitude=50, steps=1):
@@ -204,7 +204,7 @@ class Hexapod:
         swing = self._swing(amplitude)
         targets = {
             "forward":  HIP_NEUTRAL - swing,
-            "backward": HIP_NEUTRAL + swing,
+            "backward": HIP_NEUTRAL - swing,
         }
 
         for _ in range(steps):
@@ -219,7 +219,7 @@ class Hexapod:
                     if leg in LEFT_LEGS:
                         self.angles[leg.hip] = targets[left_target]
                     else:
-                        self.angles[leg.hip] = targets[right_target]
+                        self.angles[leg.hip] = HIP_NEUTRAL + swing
                 self.commit_and_wait()
 
                 # Lower
@@ -231,7 +231,6 @@ class Hexapod:
                 self._set_knees(swing_group, KNEE_NEUTRAL + 10)
                 self.commit_and_wait()
 
-    # ── Poses ────────────────────────────────────────────────────────
     def stand(self):
         self._set_neutral()
         self.commit_and_wait()
