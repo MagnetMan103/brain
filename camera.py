@@ -4,18 +4,41 @@ import threading
 from ultralytics import YOLO
 from stream import start_stream
 
+CSI_GSTREAMER_PIPELINE = (
+    "nvarguscamerasrc sensor-id=0 ! "
+    "video/x-raw(memory:NVMM), width=640, height=480, format=NV12, framerate=21/1 ! "
+    "nvvidconv flip-method=0 ! "
+    "video/x-raw, width=640, height=480, format=BGRx ! "
+    "videoconvert ! "
+    "video/x-raw, format=BGR ! appsink"
+)
+
 class Vision():
-    cap = None
     CONFIDENCE_THRESHOLD = 0.50
     BOTTLE_CLASS_ID = 39
 
     def __init__(self, cameraType, model_version, stream=False):
         """
-            cameraType: "usb"
+            cameraType: "usb" or "csi"
             model_version: "yolov8x.pt"
         """
-        if cameraType == "usb":
-            self.cap = cv2.VideoCapture(0)
+        self.cameraType = cameraType
+        
+        # New robust camera initialization
+        if self.cameraType == "usb":
+            # Bypass GStreamer and use native Linux V4L2
+            self.cap = cv2.VideoCapture(0, cv2.CAP_V4L2)
+            self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
+            self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
+            # Force MJPEG format to prevent slow raw feeds
+            self.cap.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*'MJPG'))
+        else:
+            self.cap = cv2.VideoCapture(CSI_GSTREAMER_PIPELINE, cv2.CAP_GSTREAMER)
+
+        if not self.cap.isOpened():
+            raise RuntimeError(f"Failed to open {cameraType} camera")
+        print(f"SYSTEM: {cameraType.upper()} Camera opened successfully!")
+
         self.model = YOLO(model_version)
         self.stream = stream
         self.bottles = []
@@ -28,10 +51,18 @@ class Vision():
             start_stream(self)
 
     def get_frame(self):
-        """Returns the current capture of the camera"""
+        """Returns the current capture of the camera and applies transforms"""
         ret, frame = self.cap.read()
         self.ret = ret
-        self.frame = frame
+        
+        if ret:
+            if self.cameraType == "usb":
+                # Rotate 180 degrees as specified in your new script
+                self.frame = cv2.flip(frame, -1)
+            else:
+                self.frame = frame
+        else:
+            self.frame = None
 
     def detect_bottles(self):
         """
@@ -41,8 +72,10 @@ class Vision():
         self.get_frame()
         if self.frame is None:
             return
+            
         results = self.model(self.frame, conf=self.CONFIDENCE_THRESHOLD, verbose=False)[0]
         self.bottles = []
+        
         for box in results.boxes:
             class_id = int(box.cls[0])
             if class_id == self.BOTTLE_CLASS_ID:
