@@ -64,6 +64,7 @@ class JetsonHexapod:
 
     def _imu_reader_thread(self):
         """Background thread to read YPR from Arduino."""
+        return
         try:
             ser = serial.Serial(self.arduino_port, self.baud_rate, timeout=0.1)
             print(f"SYSTEM: Connected to Arduino IMU on {self.arduino_port}")
