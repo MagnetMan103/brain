@@ -62,12 +62,21 @@ def smooth_move(servo_index, start_angle, end_angle, speed=0.02):
         set_angle(servo_index, angle)
         time.sleep(speed)
 
+joint1_end = 20
+joint2_end = 50
+joint1_grab = 120
+joint2_grab = 110
+def calibrate():
+    smooth_move(15, 0, 180)
+    smooth_move(15, 180, 0)
+
 def grab():
-    set_angle(12, 80)
-    set_angle(15, 100)
+    smooth_move(15, joint2_end, joint2_grab)
+    smooth_move(12,joint1_end, joint1_grab)
     time.sleep(1.5)
     set_angle(14, 160)
 def away():
-    smooth_move(12, 80, 20)
-    smooth_move(15, 100, 150)
+    smooth_move(12, joint1_grab, joint1_end)
+    smooth_move(15, joint2_grab, joint2_end)
     time.sleep(3)
+    set_angle(14, 120)

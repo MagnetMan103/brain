@@ -35,7 +35,7 @@ def calculate_bottle_angle(bottle_x, frame_width, camera_fov=60):
 def estimate_distance(bottle_width, frame_width):
     """Estimate relative distance to bottle based on its width."""
     width_ratio = bottle_width / frame_width
-    if width_ratio > 0.25:
+    if width_ratio > 0.24:
         return 'close'
     elif width_ratio > 0.18:
         return 'medium'
@@ -43,7 +43,7 @@ def estimate_distance(bottle_width, frame_width):
         return 'far'
 
 def main():
-    global running
+    global running, grabbed
     signal.signal(signal.SIGINT, signal_handler)
     
     print(f"{Colors.GREEN}{'='*70}{Colors.RESET}")
@@ -101,23 +101,22 @@ def main():
                 print(f"  Confidence: {confidence*100:.1f}%")
                 
                 frames_without_bottle = 0
+                x_position_ratio = center_x / frame_width
+                is_drifting_left = x_position_ratio < 0.35
+                is_drifting_right = x_position_ratio > 0.65
+                needs_recentering = abs(angle_to_bottle) > 5 or is_drifting_left or is_drifting_right
                 
+
                 # 3. Actions
-                if distance == 'close':
+                if distance == 'close' and not needs_recentering:
                     print(f"\n{Colors.GREEN}TARGET REACHED! Bottle is close enough.{Colors.RESET}")
                     print(f"{Colors.YELLOW}Waiting 5 seconds before continuing search...{Colors.RESET}\n")
-                    if not grabbed:
+                    if not grabbed or True:
                         grabber.grab()
                         grabber.away()
                         grabbed = True
                     time.sleep(5)
                     continue
-                
-                x_position_ratio = center_x / frame_width
-                is_drifting_left = x_position_ratio < 0.35
-                is_drifting_right = x_position_ratio > 0.65
-                
-                needs_recentering = abs(angle_to_bottle) > 5 or is_drifting_left or is_drifting_right
                 
                 if needs_recentering:
                     print(f"{Colors.CYAN}Recentering bottle in frame...{Colors.RESET}")
