@@ -170,8 +170,8 @@ def main():
                     print(f"{Colors.YELLOW}Initiating grab sequence...{Colors.RESET}\n")
                     if not grabbed or True:
                         action_log.log("GRAB", 0)
-                        grabber.grab()
-                        grabber.away()
+                        #grabber.grab()
+                        #grabber.away()
                         grabbed = True
                     time.sleep(5)
                     continue

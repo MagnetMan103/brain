@@ -24,7 +24,7 @@ def count_to_us(count):
 
 # Updated Hip Calibrations and Original Knee Calibrations
 CALIBRATION_DATA = {
-        12: (150, 600), 14: (150, 600), 15: (150, 600)  # Reversed
+        12: (100, 600), 13: (150, 600) ,14: (100, 600), 15: (150, 600)  # Reversed
 }
 
 # Apply calibration and determine orientation
@@ -61,22 +61,30 @@ def smooth_move(servo_index, start_angle, end_angle, speed=0.02):
     for angle in range(start_angle, end_angle + step, step):
         set_angle(servo_index, angle)
         time.sleep(speed)
-
+joint2_id = 12
+joint1_id = 14
+grabber_id = 15
 joint1_end = 20
 joint2_end = 50
-joint1_grab = 120
-joint2_grab = 110
+joint1_grab = 143
+joint2_grab = 120
 def calibrate():
-    smooth_move(15, 0, 180)
-    smooth_move(15, 180, 0)
+    smooth_move(joint2_id, 0, 180)
+    smooth_move(joint2_id, 180, 0)
 
 def grab():
-    smooth_move(15, joint2_end, joint2_grab)
-    smooth_move(12,joint1_end, joint1_grab)
+    smooth_move(joint2_id, joint2_end, joint2_grab)
+    smooth_move(joint1_id,joint1_end, joint1_grab)
     time.sleep(1.5)
-    set_angle(14, 160)
+    set_angle(grabber_id, 160)
 def away():
-    smooth_move(12, joint1_grab, joint1_end)
-    smooth_move(15, joint2_grab, joint2_end)
+    smooth_move(joint1_id, joint1_grab, joint1_end)
+    smooth_move(joint2_id, joint2_grab, joint2_end)
     time.sleep(3)
-    set_angle(14, 120)
+    set_angle(grabber_id, 120)
+hip_id = 13
+def swing(n):
+    for each in range(n):
+        smooth_move(hip_id, 40, 110, 0.01)
+        smooth_move(hip_id, 110, 40, 0.01)
+    
