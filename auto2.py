@@ -103,7 +103,9 @@ def main():
         
         frames_without_bottle = 0
         max_frames_without_bottle = 5
-        
+        grabber.away() # initialize grabber
+        grabber.release()
+        grabber.center_arm()
         while running:
             # 1. Capture and process frame via Vision class
             brain.update()
@@ -125,10 +127,12 @@ def main():
                 height = y2 - y1
                 length = min(width, height)
                 confidence = best_bottle['conf']
-                
+                small = False
+                if height < width * 2:
+                    small = True
                 angle_to_bottle = calculate_bottle_angle(center_x, frame_width, camera_fov)
                 distance = estimate_distance(length, frame_width)
-                
+                print(f"Height {height} width {width}")
                 timestamp = time.strftime("%H:%M:%S")
                 print(f"\n[{timestamp}] {Colors.GREEN}BOTTLE DETECTED{Colors.RESET}")
                 print(f"  Size: {width}px ({length/frame_width*100:.1f}% of frame)")
@@ -170,8 +174,15 @@ def main():
                     print(f"{Colors.YELLOW}Initiating grab sequence...{Colors.RESET}\n")
                     if not grabbed or True:
                         action_log.log("GRAB", 0)
-                        #grabber.grab()
-                        #grabber.away()
+                        if small:
+                            grabber.grab()
+                        else:
+                            grabber.grab_long()
+                        grabber.away()
+                        grabber.swing(5)
+                        grabber.center_arm()
+                        time.sleep(1)
+                        grabber.release()
                         grabbed = True
                     time.sleep(5)
                     continue

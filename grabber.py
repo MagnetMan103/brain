@@ -67,7 +67,7 @@ grabber_id = 15
 joint1_end = 20
 joint2_end = 50
 joint1_grab = 143
-joint2_grab = 120
+joint2_grab = 100
 def calibrate():
     smooth_move(joint2_id, 0, 180)
     smooth_move(joint2_id, 180, 0)
@@ -77,14 +77,27 @@ def grab():
     smooth_move(joint1_id,joint1_end, joint1_grab)
     time.sleep(1.5)
     set_angle(grabber_id, 160)
+def grab_long():
+    smooth_move(joint2_id, joint2_end, 108)
+    smooth_move(joint1_id, joint1_end, 137)
+    time.sleep(1.5)
+    set_angle(grabber_id, 160)
+
 def away():
-    smooth_move(joint1_id, joint1_grab, joint1_end)
-    smooth_move(joint2_id, joint2_grab, joint2_end)
-    time.sleep(3)
+    smooth_move(joint1_id, joint1_grab, 40)
+    smooth_move(joint2_id, joint2_grab, 90, 0.04)
+
+    smooth_move(joint1_id, 40, joint1_end)
+    smooth_move(joint2_id, 90, joint2_end, 0.04)
+
+def release():
     set_angle(grabber_id, 120)
+
 hip_id = 13
 def swing(n):
     for each in range(n):
         smooth_move(hip_id, 40, 110, 0.01)
         smooth_move(hip_id, 110, 40, 0.01)
-    
+
+def center_arm():
+    set_angle(hip_id, 70)

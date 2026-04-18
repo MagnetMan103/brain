@@ -15,7 +15,7 @@ class JetsonHexapod:
     SETTLE_DELAY = 0.5
     KNEE_NEUTRAL = 110
     KNEE_LIFTED = 120
-    KNEE_LOWERED = 100
+    KNEE_LOWERED = 95
     HIP_NEUTRAL = 90
     DEFAULT_SWING = 30
     
@@ -147,7 +147,7 @@ class JetsonHexapod:
         time.sleep(self.STEP_DELAY)
         for p in [3, 7, 11]: self.set_angle(p, back)
         time.sleep(self.STEP_DELAY)
-        for p in [2, 6, 10]: self.set_angle(p, self.KNEE_LOWERED)
+        for p in [2, 6, 10]: self.set_angle(p, self.KNEE_LOWERED - 3)
         time.sleep(self.STEP_DELAY)
         for p in [3, 7, 11]: self.set_angle(p, self.HIP_NEUTRAL)
         time.sleep(self.SETTLE_DELAY)
