@@ -96,8 +96,8 @@ def release():
 hip_id = 13
 def swing(n):
     for each in range(n):
-        smooth_move(hip_id, 40, 110, 0.01)
-        smooth_move(hip_id, 110, 40, 0.01)
+        smooth_move(hip_id, 30, 120, 0.005)
+        smooth_move(hip_id, 120, 30, 0.005)
 
 def center_arm():
     set_angle(hip_id, 70)

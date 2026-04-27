@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
 """
 autonomy.py - Autonomous Bottle Chase for Hexapod Robot
-Integrates YOLOv8 Vision, Jetson Hexapod control, and threaded IMU logging.
+Integrates repo's existing Vision class with JetsonHexapod direct control.
 """
 
 import time
 import signal
 import sys
 import csv
+import os
 from datetime import datetime
 from camera import Vision
 from jetson_controller import JetsonHexapod
@@ -37,29 +38,18 @@ class Colors:
 # Discrete Action Logger
 # ==========================================
 class ActionLogger:
-    def __init__(self, filename_prefix='action_log'):
-        # Create a unique filename for this run
-        self.filename = f"{filename_prefix}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
-        
+    def __init__(self, filename='action_log_1.csv'):
+        self.filename = filename
         # Initialize file with headers
         with open(self.filename, mode='w', newline='') as file:
             writer = csv.writer(file)
-            writer.writerow(['timestamp', 'human_time', 'action_type', 'parameter'])
-            
-        print(f"{Colors.GREEN}[LOGGER] Writing actions to {self.filename}{Colors.RESET}")
+            writer.writerow(['timestamp', 'action_type', 'parameter'])
 
     def log(self, action_type, parameter=0.0):
         """Appends a single action event to the CSV."""
-        unix_time = time.time()
-        human_time = datetime.now().strftime("%H:%M:%S.%f")[:-3]
-        
-        # Format parameter if it's a float
-        if isinstance(parameter, float):
-            parameter = round(parameter, 2)
-            
         with open(self.filename, mode='a', newline='') as file:
             writer = csv.writer(file)
-            writer.writerow([unix_time, human_time, action_type, parameter])
+            writer.writerow([time.time(), action_type, parameter])
 
 # ==========================================
 # Vision Helpers
@@ -94,17 +84,21 @@ def main():
     print(f"{Colors.GREEN}Hexapod Bottle Chase Autonomy Loop{Colors.RESET}")
     print(f"{Colors.GREEN}{'='*70}{Colors.RESET}\n")
     
-    # 1. Start Background Loggers
-    print(f"{Colors.CYAN}Starting loggers...{Colors.RESET}")
+    # --- Logging Setup ---
+    # Ensure the logs directory exists
+    os.makedirs("logs", exist_ok=True)
     
-    # Generate a matching timestamp for the IMU log so they pair up perfectly
+    # Generate unique run timestamp
     run_timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-    imu_filename = f"imu_log_{run_timestamp}.csv"
-    
+    imu_filename = f"logs/imu_log_{run_timestamp}.csv"
+    action_filename = f"logs/action_log_{run_timestamp}.csv"
+
+    # 1. Start Background Loggers
+    print(f"{Colors.CYAN}Starting loggers in logs/ folder...{Colors.RESET}")
     imu_thread = IMULogger(port='/dev/ttyACM0', filename=imu_filename)
     imu_thread.start()
     
-    action_log = ActionLogger(filename_prefix='action_log')
+    action_log = ActionLogger(filename=action_filename)
     action_log.log("SYSTEM_START", 0)
     
     try:
@@ -120,6 +114,9 @@ def main():
         
         frames_without_bottle = 0
         max_frames_without_bottle = 5
+        grabber.away() # initialize grabber
+        grabber.release()
+        grabber.center_arm()
         
         while running:
             # 1. Capture and process frame via Vision class
@@ -141,10 +138,16 @@ def main():
                 width = x2 - x1
                 height = y2 - y1
                 length = min(width, height)
+                confidence = best_bottle['conf']
+                small = False
                 
+                if height < width * 2:
+                    small = True
+                    
                 angle_to_bottle = calculate_bottle_angle(center_x, frame_width, camera_fov)
                 distance = estimate_distance(length, frame_width)
                 
+                print(f"Height {height} width {width}")
                 timestamp = time.strftime("%H:%M:%S")
                 print(f"\n[{timestamp}] {Colors.GREEN}BOTTLE DETECTED{Colors.RESET}")
                 print(f"  Size: {width}px ({length/frame_width*100:.1f}% of frame)")
@@ -184,10 +187,17 @@ def main():
                 elif distance == 'close':
                     print(f"\n{Colors.GREEN}TARGET REACHED! Bottle is in the sweet spot.{Colors.RESET}")
                     print(f"{Colors.YELLOW}Initiating grab sequence...{Colors.RESET}\n")
-                    if not grabbed:
+                    if not grabbed or True:
                         action_log.log("GRAB", 0)
-                        # grabber.grab()
-                        # grabber.away()
+                        if small:
+                            grabber.grab()
+                        else:
+                            grabber.grab_long()
+                        grabber.away()
+                        grabber.swing(5)
+                        grabber.center_arm()
+                        time.sleep(1)
+                        grabber.release()
                         grabbed = True
                     time.sleep(5)
                     continue

@@ -62,9 +62,9 @@ def estimate_distance(bottle_width, frame_width):
     """Estimate relative distance to bottle based on its width."""
     width_ratio = bottle_width / frame_width
     
-    if width_ratio > 0.255:
+    if width_ratio > 0.265:
         return 'too_close'
-    elif width_ratio > 0.24:
+    elif width_ratio > 0.25:
         return 'close'
     elif width_ratio > 0.18:
         return 'medium'
