@@ -80,3 +80,26 @@ class IMULogger(threading.Thread):
         self.is_logging = False
         if self.ser and self.ser.is_open:
             self.ser.close()
+
+if __name__ == '__main__':
+    # Generate a timestamped filename (e.g., imu_log_20260514_114700.csv)
+    timestamp = time.strftime("%Y%m%d_%H%M%S")
+    log_filename = f"imu_log_{timestamp}.csv"
+    
+    print(f"Starting IMU Logger...")
+    print(f"Writing data to: {log_filename}")
+    print("Press Ctrl+C to stop logging.")
+    
+    # Initialize and start the logger thread
+    logger = IMULogger(filename=log_filename)
+    logger.start()
+    
+    try:
+        # Keep the main thread alive so the background thread can run
+        while True:
+            time.sleep(1)
+    except KeyboardInterrupt:
+        print(f"\n{Colors.RED}KeyboardInterrupt detected. Stopping logger safely...{Colors.RESET}")
+        logger.stop()
+        logger.join()  # Wait for the thread to completely finish
+        print("Logger stopped.")
